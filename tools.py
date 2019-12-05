@@ -1,21 +1,64 @@
 import re
 from invoke import *
 from PyQt5.QtGui import QIcon, QFont
+from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QLayout, QGridLayout, QVBoxLayout, QHBoxLayout
 import time
 
 func_param_map = dict()
 func_help_param_map = dict()
 origin_func_help_param_map = dict()
 func_help_map = dict()
+base_font_size = 14
+
+dark_theme = {
+    'label_bg_color':'color:rgb(241,241,241);background-color:rgb(45,45,48);',
+    'gbg_color':'color:rgb(241,241,241);background-color:rgb(30,30,30);font-size:{}px;'
+}
 
 
-def set_window_ui(win):
-    # 隐藏调试按钮
-    win.btn_test_invoke.hide()
-    # 设置字体
-    #win.setFont(QFont("Roman times", 10.5))
-    label_bg_color = "color:{};background-color: {};".format('rgb(241,241,241)','rgb(45,45,48)')
-    bg_color = "color:{};background-color: {};{}".format('rgb(241,241,241)','rgb(30,30,30)', 'font-size:20px;')
+def set_window_more_options(widget):
+    window = widget.window
+    wgt_main = window.widget_main
+    wgt_more = window.widget_more
+    '''
+    main_layout = QGridLayout()
+    # 关键性的参数设置
+    main_layout.setSizeConstraint(QLayout.SetFixedSize)
+    #mainLayout.addLayout(leftLayout, 0, 0)
+    main_layout.addWidget(wgt_main, 0, 1)
+    main_layout.addWidget(wgt_more, 0, 2, 1, 1)
+    main_layout.setColumnStretch(0, 1)
+    widget.setLayout(main_layout)
+    '''
+
+    #window.hlayout_2.setContentsMargins(0,0,0,0)
+    v_layout1 = QVBoxLayout()
+    v_layout2 = QVBoxLayout()
+    v_layout1.addWidget(wgt_main)
+    grid_layout = QGridLayout()
+    print('QLayout.SetFixedSize:{}'.format(QLayout.SetFixedSize))
+    #grid_layout.setSizeConstraint(QLayout.SetFixedSize)
+    grid_layout.addLayout(v_layout1, 0, 0)
+    grid_layout.addWidget(wgt_more, 1, 0) #, 1, 1)
+    wgt_more.hide()
+    widget.setLayout(grid_layout)
+
+
+def ui_timer_handler(win):
+    time_now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    win.window.te_now.setText(time_now)
+
+
+def set_window_timer(win):
+    win.timer = QTimer(win)
+    win.timer.timeout.connect(win.timer_handler)
+    win.timer.start(1000) # 每隔一秒执行一次
+
+
+def set_input_font_size(win, size):
+    gbg_color = dark_theme['gbg_color']
+    bg_color = gbg_color.format(base_font_size+size)
     # 输入框样式设置
     win.text_params.setStyleSheet(bg_color)
     win.text_result.setStyleSheet(bg_color)
@@ -28,7 +71,24 @@ def set_window_ui(win):
     # 下拉框样式设置
     win.comboBox.setStyleSheet(bg_color)
     win.cb_func_total.setStyleSheet(bg_color)
+    win.font_box.setStyleSheet(bg_color)
 
+
+def ui_value_changed(self, value):
+    print('changed_value:{}'.format(value))
+    set_input_font_size(self, value)
+    pass
+
+
+def set_window_ui(win):
+    # 隐藏调试按钮
+    win.btn_test_invoke.hide()
+    # 设置字体
+    #win.setFont(QFont("Roman times", 10.5))
+    #label_bg_color = "color:{};background-color: {};".format('rgb(241,241,241)','rgb(45,45,48)')
+    #bg_color = "color:{};background-color: {};{}".format('rgb(241,241,241)','rgb(30,30,30)', 'font-size:{}px;'.format(base_font_size))
+    set_input_font_size(win, 0)
+    label_bg_color = dark_theme['label_bg_color']
     # 标签样式设置
     win.label_ip.setStyleSheet(label_bg_color)
     win.label_port.setStyleSheet(label_bg_color)
@@ -39,7 +99,10 @@ def set_window_ui(win):
     win.label_3.setStyleSheet(label_bg_color)
     win.label_4.setStyleSheet(label_bg_color)
     win.label_5.setStyleSheet(label_bg_color)
+    win.te_now.setStyleSheet(label_bg_color)
+    win.font_size.setStyleSheet(label_bg_color)
 
+    print('label_bg_size:{}'.format(win.label_2.baseSize().width()))
 
 #格式化json输出
 def get_pretty_print(json_object):
@@ -232,7 +295,8 @@ def define_signals(win):
     win.btn_invoke.clicked.connect(win.invoke_func)
     win.comboBox.currentIndexChanged.connect(win.selection_change)
     win.cb_func_total.activated.connect(win.cb_actived)
-    win.te_now.dateTimeChanged.connect(win.te_dateTimeChanged)
+    #win.te_now.dateTimeChanged.connect(win.te_dateTimeChanged)
+    win.font_box.valueChanged.connect(win.value_changed)
 
 
 # 额外窗口样式设置
@@ -240,6 +304,8 @@ def extro_ui(window):
     window.setWindowIcon(QIcon('./resources/ice.png'))
     #window.setStyleSheet("#Window{background-color: lightblue}")
     window.setStyleSheet("#Window{background-color: rgb(45,45,48)}")
+    window.setMaximumSize(window.width(), window.height())
+    window.setMinimumSize(window.width(), window.height())
 
 
 # ice文件函数解析
@@ -362,10 +428,21 @@ def ui_drop_event(self, evn):
     self.window.text_params.setText(file_path)
     key_list = parse_ice_file(file_path)
 
+    # 先清空以前的参数信息和帮助信息, comboBox信息等
+    global func_param_map
+    func_param_map.clear()
+    global func_help_param_map
+    func_help_param_map.clear()
+    global origin_func_help_param_map
+    origin_func_help_param_map.clear()
+    global func_help_map
+    func_help_map.clear()
+    self.window.cb_func_total.clear()
+    self.window.comboBox.clear()
+
     print(key_list)
     if len(key_list) > 0:
         value_list = [None] * len(key_list)
-        global func_param_map
         func_param_map = dict(zip(key_list, value_list))
         self.window.cb_func_total.addItems(key_list)
         #print(func_param_map)
