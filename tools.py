@@ -5,16 +5,32 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QLayout, QGridLayout, QVBoxLayout, QHBoxLayout
 import time
 
+# ice文件返回的数据类型
+func_pre_list = [
+    'void',
+    'int'
+]
 func_param_map = dict()
 func_help_param_map = dict()
 origin_func_help_param_map = dict()
 func_help_map = dict()
 base_font_size = 14
+g_ice_file_path = None
 
+# 颜色主题
 dark_theme = {
     'label_bg_color':'color:rgb(241,241,241);background-color:rgb(45,45,48);',
     'gbg_color':'color:rgb(241,241,241);background-color:rgb(30,30,30);font-size:{}px;'
 }
+
+
+# 隐藏控制台
+def close_console():
+    import ctypes
+    whnd = ctypes.windll.kernel32.GetConsoleWindow()
+    if whnd != 0:
+        ctypes.windll.user32.ShowWindow(whnd, 0)
+        ctypes.windll.kernel32.CloseHandle(whnd)
 
 
 def set_window_more_options(widget):
@@ -47,7 +63,10 @@ def set_window_more_options(widget):
 
 def ui_timer_handler(win):
     time_now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    win.window.te_now.setText(time_now)
+    str_info = '当前时间:{}'.format(time_now)
+    if g_ice_file_path:
+        str_info = '{} 文件路径:{}'.format(str_info, g_ice_file_path)
+    win.window.te_now.setText(str_info)
 
 
 def set_window_timer(win):
@@ -264,6 +283,9 @@ def init_params(win):
         win.lineEdit_ip.setText(conf["ip"])
         win.lineEdit_port.setText(conf["port"])
         win.lineEdit_flag.setText(conf["flag"])
+        # 关闭控制台调试
+        if 'debug_model' in conf.keys() and conf['debug_model'] is False:
+            close_console()
 
 
 # Ice文件函数选择时处理
@@ -272,7 +294,7 @@ def ui_cb_actived(self, index):
     self.lineEdit_func.setText(func_name)
     if func_name in func_param_map.keys():
         func_params = func_param_map[func_name]
-        if not func_params:
+        if not func_params and func_name in func_help_param_map.keys():
             func_params = func_help_param_map[func_name]
         else:
             pass
@@ -315,10 +337,13 @@ def parse_ice_file(file_path):
         line = fd.readline()
         while line:
             line = line.lstrip()
-            pre_str = 'void '
-            if line.startswith(pre_str) and '(' in line:
+            # 获取函数的返回类型
+            pre_str = line[0:line.find(' ')]
+            print('pre_str1:{}'.format(pre_str))
+            if pre_str in func_pre_list and '(' in line:
                 line = line[len(pre_str):line.index('(')]
                 func_names.append(line)
+                print('pre_str:{}'.format(pre_str))
             line = fd.readline()
     return func_names
 
@@ -419,46 +444,49 @@ def ui_drag_enter_event(self, evn):
 
 # 鼠标放开执行
 def ui_drop_event(self, evn):
-    # 获取文件路径
-    file_path = evn.mimeData().text()
-    str_head = 'file:///'
-    if file_path.startswith(str_head):
-        file_path = file_path[len(str_head):]
-    print(file_path)
-    self.window.text_params.setText(file_path)
-    key_list = parse_ice_file(file_path)
+    file_path = ''
+    try:
+        # 获取文件路径
+        file_path = evn.mimeData().text()
+        str_head = 'file:///'
+        if file_path.startswith(str_head):
+            file_path = file_path[len(str_head):]
+        print(file_path)
+        self.window.text_params.setText(file_path)
+        key_list = parse_ice_file(file_path)
 
-    # 先清空以前的参数信息和帮助信息, comboBox信息等
-    global func_param_map
-    func_param_map.clear()
-    global func_help_param_map
-    func_help_param_map.clear()
-    global origin_func_help_param_map
-    origin_func_help_param_map.clear()
-    global func_help_map
-    func_help_map.clear()
-    self.window.cb_func_total.clear()
-    self.window.comboBox.clear()
+        # 先清空以前的参数信息和帮助信息, comboBox信息等
+        global func_param_map
+        func_param_map.clear()
+        global func_help_param_map
+        func_help_param_map.clear()
+        global origin_func_help_param_map
+        origin_func_help_param_map.clear()
+        global func_help_map
+        func_help_map.clear()
+        self.window.cb_func_total.clear()
+        self.window.comboBox.clear()
 
-    print(key_list)
-    if len(key_list) > 0:
-        value_list = [None] * len(key_list)
-        func_param_map = dict(zip(key_list, value_list))
-        self.window.cb_func_total.addItems(key_list)
-        #print(func_param_map)
-    func_params_list = get_func_params(file_path)
-    get_func_help_params()
-    #print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&func_help_map:{}".format(func_help_map))
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&func_help_params_map:{}".format(func_help_param_map))
-    str_json = json.dumps(func_help_param_map)
-    print("json:{}".format(str_json))
+        print(key_list)
+        if len(key_list) > 0:
+            value_list = [None] * len(key_list)
+            func_param_map = dict(zip(key_list, value_list))
+            self.window.cb_func_total.addItems(key_list)
+            #print(func_param_map)
+        func_params_list = get_func_params(file_path)
+        get_func_help_params()
+        #print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&func_help_map:{}".format(func_help_map))
+        print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&func_help_params_map:{}".format(func_help_param_map))
+        str_json = json.dumps(func_help_param_map)
+        print("json:{}".format(str_json))
+    except Exception as e:
+        print('drag event:{}'.format(e))
+    else:
+        global g_ice_file_path
+        g_ice_file_path = file_path
 
 
 # 鼠标拖拽文件移动
 def ui_drag_move_event(self, evn):
     pass
 
-
-def ui_te_datetime_changed(self, datetime):
-    self.te_now.setDateTime(datetime)
-    pass

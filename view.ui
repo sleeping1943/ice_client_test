@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1115</width>
-    <height>858</height>
+    <height>834</height>
    </rect>
   </property>
   <property name="acceptDrops">
@@ -81,13 +81,13 @@
      <x>10</x>
      <y>20</y>
      <width>1091</width>
-     <height>821</height>
+     <height>811</height>
     </rect>
    </property>
    <widget class="QPushButton" name="btn_invoke">
     <property name="geometry">
      <rect>
-      <x>870</x>
+      <x>1000</x>
       <y>770</y>
       <width>75</width>
       <height>23</height>
@@ -103,8 +103,8 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>980</x>
-      <y>770</y>
+      <x>990</x>
+      <y>20</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -118,7 +118,7 @@
      <rect>
       <x>20</x>
       <y>770</y>
-      <width>201</width>
+      <width>971</width>
       <height>21</height>
      </rect>
     </property>
