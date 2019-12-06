@@ -19,10 +19,32 @@ g_ice_file_path = None
 
 # 颜色主题
 dark_theme = {
-    'label_bg_color':'color:rgb(241,241,241);background-color:rgb(45,45,48);',
-    'gbg_color':'color:rgb(241,241,241);background-color:rgb(30,30,30);font-size:{}px;'
+    'main_color': "#Window{background-color: rgb(45,45,48)}",
+    'label_bg_color': 'color:rgb(241,241,241);background-color:rgb(45,45,48);',
+    'gbg_color': 'color:rgb(241,241,241);background-color:rgb(30,30,30);font-size:{}px;',
+    'group_color': 'color:rgb(241,241,241);background-color:rgb(45,45,48);',
+    'btn_color': '''QPushButton{color:rgb(241,241,241)}
+                    QPushButton:hover{color:cyan}
+                    QPushButton{background-color:rgb(92,97,100)}
+                    QPushButton{border:2px}
+                    QPushButton{border-radius:10px}
+                    QPushButton{padding:2px 4px}'''
 }
 
+light_theme = {
+    'main_color': "#Window{background-color: rgb(241,241,241)}",
+    'label_bg_color': 'color:rgb(45,45,48);background-color:rgb(241,241,241);',
+    'gbg_color': 'color:rgb(30,30,30);background-color:rgb(255,255,255);font-size:{}px;',
+    'group_color': 'color:rgb(45,45,48);background-color:rgb(241,241,241);',
+    'btn_color': '''QPushButton{color:rgb(45,45,48)}
+                    QPushButton:hover{color:cyan}
+                    QPushButton{background-color:rgb(220,220,220)}
+                    QPushButton{border:2px}
+                    QPushButton{border-radius:10px}
+                    QPushButton{padding:2px 4px}'''
+}
+
+cur_theme = light_theme
 
 # 隐藏控制台
 def close_console():
@@ -76,7 +98,7 @@ def set_window_timer(win):
 
 
 def set_input_font_size(win, size):
-    gbg_color = dark_theme['gbg_color']
+    gbg_color = cur_theme['gbg_color']
     bg_color = gbg_color.format(base_font_size+size)
     # 输入框样式设置
     win.text_params.setStyleSheet(bg_color)
@@ -100,14 +122,21 @@ def ui_value_changed(self, value):
 
 
 def set_window_ui(win):
+    global cur_theme
+    if win.theme_light.isChecked():
+        cur_theme = light_theme
+    elif win.theme_dark.isChecked():
+        cur_theme = dark_theme
+    else:
+        cur_theme = dark_theme
+
     # 隐藏调试按钮
     win.btn_test_invoke.hide()
+    # 设置按钮样式
+    win.btn_invoke.setStyleSheet(cur_theme['btn_color'])
     # 设置字体
-    #win.setFont(QFont("Roman times", 10.5))
-    #label_bg_color = "color:{};background-color: {};".format('rgb(241,241,241)','rgb(45,45,48)')
-    #bg_color = "color:{};background-color: {};{}".format('rgb(241,241,241)','rgb(30,30,30)', 'font-size:{}px;'.format(base_font_size))
     set_input_font_size(win, 0)
-    label_bg_color = dark_theme['label_bg_color']
+    label_bg_color = cur_theme['label_bg_color']
     # 标签样式设置
     win.label_ip.setStyleSheet(label_bg_color)
     win.label_port.setStyleSheet(label_bg_color)
@@ -120,10 +149,18 @@ def set_window_ui(win):
     win.label_5.setStyleSheet(label_bg_color)
     win.te_now.setStyleSheet(label_bg_color)
     win.font_size.setStyleSheet(label_bg_color)
+    win.theme_dark.setStyleSheet(label_bg_color)
+    win.theme_light.setStyleSheet(label_bg_color)
 
+    # 主窗口背景色
+    win.widget.setStyleSheet(cur_theme['main_color'])
+    # 主题box样式
+    group_color = cur_theme['group_color']
+    win.theme_box.setStyleSheet(group_color)
     print('label_bg_size:{}'.format(win.label_2.baseSize().width()))
 
-#格式化json输出
+
+# 格式化json输出
 def get_pretty_print(json_object):
     return json.dumps(json_object, sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)
 
@@ -319,13 +356,15 @@ def define_signals(win):
     win.cb_func_total.activated.connect(win.cb_actived)
     #win.te_now.dateTimeChanged.connect(win.te_dateTimeChanged)
     win.font_box.valueChanged.connect(win.value_changed)
+    win.theme_dark.toggled.connect(win.set_window_ui)
+    win.theme_light.toggled.connect(win.set_window_ui)
 
 
 # 额外窗口样式设置
 def extro_ui(window):
     window.setWindowIcon(QIcon('./resources/ice.png'))
     #window.setStyleSheet("#Window{background-color: lightblue}")
-    window.setStyleSheet("#Window{background-color: rgb(45,45,48)}")
+    window.setStyleSheet(cur_theme['main_color'])
     window.setMaximumSize(window.width(), window.height())
     window.setMinimumSize(window.width(), window.height())
 
@@ -349,7 +388,7 @@ def parse_ice_file(file_path):
 
 
 # 从文件获取函数对应的帮助信息
-def get_func_params(file_path):
+def get_help_infos(file_path):
     func_names = list()
     pre_func_name = None
     cur_func_name = ''
@@ -473,7 +512,7 @@ def ui_drop_event(self, evn):
             func_param_map = dict(zip(key_list, value_list))
             self.window.cb_func_total.addItems(key_list)
             #print(func_param_map)
-        func_params_list = get_func_params(file_path)
+        func_params_list = get_help_infos(file_path)
         get_func_help_params()
         #print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&func_help_map:{}".format(func_help_map))
         print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&func_help_params_map:{}".format(func_help_param_map))
