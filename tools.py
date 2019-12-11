@@ -380,7 +380,7 @@ def parse_ice_file(file_path):
             pre_str = line[0:line.find(' ')]
             print('pre_str1:{}'.format(pre_str))
             if pre_str in func_pre_list and '(' in line:
-                line = line[len(pre_str):line.index('(')]
+                line = line[len(pre_str)+1:line.index('(')]
                 func_names.append(line)
                 print('pre_str:{}'.format(pre_str))
             line = fd.readline()
