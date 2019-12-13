@@ -81,6 +81,8 @@ def set_window_more_options(widget):
     grid_layout.addWidget(wgt_more, 1, 0) #, 1, 1)
     wgt_more.hide()
     widget.setLayout(grid_layout)
+    # 函数参数只可读
+    window.func_params.setReadOnly(True)
 
 
 def ui_timer_handler(win):
@@ -528,4 +530,3 @@ def ui_drop_event(self, evn):
 # 鼠标拖拽文件移动
 def ui_drag_move_event(self, evn):
     pass
-
