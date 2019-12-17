@@ -1,18 +1,27 @@
 import re
 from invoke import *
-from PyQt5.QtGui import QIcon, QFont
+from PyQt5.QtGui import QIcon, QFont, QTextDocument, QTextCursor
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QLayout, QGridLayout, QVBoxLayout, QHBoxLayout
 import time
 
+# 测试用的行数 定位于Login函数
+g_test_line = 34
+g_total_lines = list()
 # ice文件返回的数据类型
 func_pre_list = [
     'void',
     'int'
 ]
+# 函数名对应的行数
+g_func_name_line_map = dict()
+# 函数名
 func_param_map = dict()
+# 函数参数信息
 func_help_param_map = dict()
+# 原始的函数帮助信息
 origin_func_help_param_map = dict()
+# 函数帮助信息
 func_help_map = dict()
 base_font_size = 14
 g_ice_file_path = None
@@ -45,6 +54,14 @@ light_theme = {
 }
 
 cur_theme = light_theme
+
+def help_format(self, state):
+    print('help_format:{}'.format(state))
+    if self.whole_help_format.isChecked():
+        document = QTextDocument(''.join(g_total_lines))
+        self.func_params.setDocument(document)
+    ui_cb_actived(self, 0)
+
 
 # 隐藏控制台
 def close_console():
@@ -153,12 +170,15 @@ def set_window_ui(win):
     win.font_size.setStyleSheet(label_bg_color)
     win.theme_dark.setStyleSheet(label_bg_color)
     win.theme_light.setStyleSheet(label_bg_color)
+    win.partial_help_format.setStyleSheet(label_bg_color)
+    win.whole_help_format.setStyleSheet(label_bg_color)
 
     # 主窗口背景色
     win.widget.setStyleSheet(cur_theme['main_color'])
     # 主题box样式
     group_color = cur_theme['group_color']
     win.theme_box.setStyleSheet(group_color)
+    win.theme_box_3.setStyleSheet(group_color)
     print('label_bg_size:{}'.format(win.label_2.baseSize().width()))
 
 
@@ -302,10 +322,25 @@ def ui_selection_change(self, index):
             self.text_params.setText(func_params)
     else:
         pass
-    if func_name in func_help_map.keys():
-        func_help_info = func_help_map[func_name]
-        self.func_params.clear()
-        self.func_params.setText(func_help_info)
+    # 帮助信息全文定位
+    if self.partial_help_format.isChecked():
+        if func_name in func_help_map.keys():
+            func_help_info = func_help_map[func_name]
+            self.func_params.clear()
+            self.func_params.setText(func_help_info)
+        else:
+            pass
+    else:
+        if func_name in g_func_name_line_map.keys():
+            line_index = g_func_name_line_map[func_name]
+            win_func_params = self.func_params
+            tc = win_func_params.textCursor()
+            position = win_func_params.document().findBlockByNumber(line_index-1).position()
+            tc.setPosition(position,QTextCursor.MoveAnchor)
+            win_func_params.setTextCursor(tc)
+            print('func_name:{} line_index:{}'.format(func_name, line_index-1))
+        else:
+            pass
 
 
 # 初始化参数
@@ -344,10 +379,25 @@ def ui_cb_actived(self, index):
             pass
     else:
         pass
-    if func_name in func_help_map.keys():
-        func_help_info = func_help_map[func_name]
-        self.func_params.clear()
-        self.func_params.setText(func_help_info)
+    # 帮助信息全文定位
+    if self.partial_help_format.isChecked():
+        if func_name in func_help_map.keys():
+            func_help_info = func_help_map[func_name]
+            self.func_params.clear()
+            self.func_params.setText(func_help_info)
+        else:
+            pass
+    else:
+        if func_name in g_func_name_line_map.keys():
+            line_index = g_func_name_line_map[func_name]
+            win_func_params = self.func_params
+            tc = win_func_params.textCursor()
+            position = win_func_params.document().findBlockByNumber(line_index-1).position()
+            tc.setPosition(position,QTextCursor.MoveAnchor)
+            win_func_params.setTextCursor(tc)
+            print('func_name:{} line_index:{}'.format(func_name, line_index-1))
+        else:
+            pass
 
 
 # 窗口信号处理
@@ -360,6 +410,9 @@ def define_signals(win):
     win.font_box.valueChanged.connect(win.value_changed)
     win.theme_dark.toggled.connect(win.set_window_ui)
     win.theme_light.toggled.connect(win.set_window_ui)
+    # 帮助显示样式
+    win.partial_help_format.toggled.connect(win.help_format)
+    win.whole_help_format.toggled.connect(win.help_format)
 
 
 # 额外窗口样式设置
@@ -374,18 +427,27 @@ def extro_ui(window):
 # ice文件函数解析
 def parse_ice_file(file_path):
     func_names = list()
+
     with open(file_path, 'r') as fd:
+        line_index = 1
         line = fd.readline()
+        #global g_total_lines
+        g_total_lines.append(line)
         while line:
+            g_total_lines.append(line)
             line = line.lstrip()
             # 获取函数的返回类型
             pre_str = line[0:line.find(' ')]
-            print('pre_str1:{}'.format(pre_str))
+            #print('pre_str1:{}'.format(pre_str))
             if pre_str in func_pre_list and '(' in line:
-                line = line[len(pre_str)+1:line.index('(')]
-                func_names.append(line)
-                print('pre_str:{}'.format(pre_str))
+                func_name = line[len(pre_str)+1:line.index('(')]
+                func_names.append(func_name)
+                g_func_name_line_map[func_name] = line_index
+                #print('pre_str:{}'.format(pre_str))
             line = fd.readline()
+            line_index = line_index + 1
+        print('total_lines:{}'.format(len(g_total_lines)))
+        print('g_func_name_line_map:{}'.format(g_func_name_line_map))
     return func_names
 
 
@@ -397,8 +459,10 @@ def get_help_infos(file_path):
     help_info = ''
     global func_param_map
     help_info_list = list()
+
     with open(file_path, 'r') as fd:
-        line = fd.readline()
+        origin_line = fd.readline()
+        line = origin_line
         while line:
             line = line.lstrip()
             for key in func_param_map.keys():
@@ -411,8 +475,8 @@ def get_help_infos(file_path):
                     #print(line)
                     break
             if pre_func_name:
-                help_info += line
-                help_info_list.append(line)
+                help_info += origin_line
+                help_info_list.append(origin_line)
             # 该函数帮助信息结尾
             if cur_func_name == pre_func_name:
                 pre_func_name = None
@@ -423,6 +487,7 @@ def get_help_infos(file_path):
                 help_info_list[:] = []
                 help_info = ''
             line = fd.readline()
+            origin_line = line
     return func_names
 
 
@@ -508,18 +573,19 @@ def ui_drop_event(self, evn):
         self.window.cb_func_total.clear()
         self.window.comboBox.clear()
 
-        print(key_list)
+        #print(key_list)
         if len(key_list) > 0:
             value_list = [None] * len(key_list)
             func_param_map = dict(zip(key_list, value_list))
             self.window.cb_func_total.addItems(key_list)
             #print(func_param_map)
+
         func_params_list = get_help_infos(file_path)
         get_func_help_params()
         #print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&func_help_map:{}".format(func_help_map))
-        print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&func_help_params_map:{}".format(func_help_param_map))
-        str_json = json.dumps(func_help_param_map)
-        print("json:{}".format(str_json))
+        #print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&func_help_params_map:{}".format(func_help_param_map))
+        #str_json = json.dumps(func_help_param_map)
+        #print("json:{}".format(str_json))
     except Exception as e:
         print('drag event:{}'.format(e))
     else:

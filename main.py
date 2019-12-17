@@ -17,6 +17,8 @@ def main():
     Ui_Window.cb_actived = ui_cb_actived
     Ui_Window.value_changed = ui_value_changed
     Ui_Window.set_window_ui = set_window_ui
+    Ui_Window.help_format = help_format
+
     QtWidgets.QWidget.dragEnterEvent = ui_drag_enter_event
     QtWidgets.QWidget.dropEvent = ui_drop_event
     QtWidgets.QWidget.dragMoveEvent = ui_drag_move_event
@@ -33,6 +35,8 @@ def main():
     set_window_more_options(widget)
     # 默认暗黑主题
     window.theme_dark.setChecked(True)
+    # 默认帮助部分显示
+    window.partial_help_format.setChecked(True)
     #设置窗口样式
     set_window_ui(window)
 
