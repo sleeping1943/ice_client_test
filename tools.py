@@ -467,7 +467,6 @@ def get_help_infos(file_path):
             line = line.lstrip()
             for key in func_param_map.keys():
                 if key in line:
-                    #print('key:{} in line:{}'.format(key, line))
                     if not pre_func_name:
                         pre_func_name = key
                     else:
@@ -503,40 +502,62 @@ def get_func_help_params():
     for key,value_list in origin_func_help_param_map.items():
         # 初始参数为None,不处理
         help_info_list = list()
+        # 第一行的缩进空格数
+        blank_count = -1
         # 括号层数
         bracket_level = 0
         is_begin = False
         for line in value_list:
             trim_str = line.strip()
             if is_begin:
-                if trim_str[0] == '{':
+                if blank_count == -1:
+                    blank_count = (len(line) - len(line.lstrip()))
+                left_quot = False
+                right_quot = False
+                if '{' in trim_str:
+                    left_quot = True
                     bracket_level += 1
-                elif trim_str[-1] == '}':
+                if '}' in trim_str:
+                    right_quot = True
                     bracket_level -= 1
-                    # {}在同一行的情况
-                    if len(trim_str) >= 2 and trim_str[-2] == '{':
-                        bracket_level += 1
-                    else:
-                        pass
-                # 结尾不是'{' or '}'的情况,剔除后面的注释
-                else:
+                    # 消除上一行的','
+                    if (not left_quot) and len(help_info_list) > 0:
+                        help_info_list[-1] = help_info_list[-1].rstrip(' ,\n')
+                        #print('help_info_line[-1]:{}'.format(help_info_list[-1]))
+
+                # 该行字符串没有'{'和'}' 或者同时有'{'和'}'的情况,剔除后面的注释
+                if (left_quot^right_quot) == False:
                     for value in split_list:
                         if value in line:
                             line = line[0:line.index(value)]
                             line = line.rstrip()
                         else:
                             pass
-                help_info_list.append(line)
+                format_line = line
+                if blank_count > 0:
+                    format_line = line[blank_count:]
+                help_info_list.append(format_line)
             elif trim_str.startswith('example'):
                 is_begin = True
                 continue
             # 括号匹配完，跳出此函数参数解析
             if is_begin and bracket_level == 0:
-                if len(help_info_list) >= 2:
+                temp_help_info = None
+                if len(help_info_list) > 2:
                     param_str = help_info_list[-2]
                     help_info_list[-2] = param_str.rstrip(',')
-                help_info = '\n'.join(help_info_list)
-                func_help_param_map[key] = help_info
+                    temp_help_info_list = help_info_list[1:-1]
+                    temp_help_info = '\n'.join(temp_help_info_list)
+                    help_info_list[1:-1] = temp_help_info 
+                help_info = ''.join(help_info_list)
+                try:
+                    help_info_obj = json.loads(help_info)
+                    func_help_param_map[key] = get_pretty_print(help_info_obj)
+                except Exception as e:
+                    func_help_param_map[key] = help_info
+                    print('get_func_help_params error:{}'.format(e))
+                else:
+                    func_help_param_map[key] = help_info
                 help_info_list.clear()
                 break
 
