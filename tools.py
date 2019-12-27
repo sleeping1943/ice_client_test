@@ -549,6 +549,7 @@ def get_func_help_params():
                     temp_help_info_list = help_info_list[1:-1]
                     temp_help_info = '\n'.join(temp_help_info_list)
                     help_info_list[1:-1] = temp_help_info 
+                help_info_list.insert(-1, '\n')
                 help_info = ''.join(help_info_list)
                 try:
                     help_info_obj = json.loads(help_info)
