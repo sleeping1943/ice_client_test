@@ -63,6 +63,18 @@ def help_format(self, state):
     ui_cb_actived(self, 0)
 
 
+# 检测指定行文本是否包含该函数名
+def check_func_name(line, func_name):
+    # 先按'('分割,在按' '分割
+    word_list = line.split('(')
+    for word in word_list:
+        key_word_list = word.split(' ')
+        for key_word in key_word_list:
+            if func_name == key_word:
+                return True
+    return False
+
+
 # 隐藏控制台
 def close_console():
     import ctypes
@@ -460,17 +472,21 @@ def get_help_infos(file_path):
     global func_param_map
     help_info_list = list()
 
+    # 过滤出函数名之间的帮助信息
     with open(file_path, 'r') as fd:
         origin_line = fd.readline()
         line = origin_line
         while line:
             line = line.lstrip()
             for key in func_param_map.keys():
-                if key in line:
+                if check_func_name(line, key):
                     if not pre_func_name:
                         pre_func_name = key
                     else:
-                        cur_func_name = key
+                        for prefix in func_pre_list: # 找到函数定义(即帮助信息定义结尾)
+                            if prefix in line:
+                                cur_func_name = key
+                                break
                     #print(line)
                     break
             if pre_func_name:
