@@ -23,6 +23,7 @@ def main():
     QtWidgets.QWidget.dropEvent = ui_drop_event
     QtWidgets.QWidget.dragMoveEvent = ui_drag_move_event
     QtWidgets.QWidget.timer_handler = ui_timer_handler
+    QtWidgets.QWidget.keyReleaseEvent = ui_key_release_event
     ''' 窗口类添加其他事件函数 end '''
     window = Ui_Window()
     window.setupUi(widget)
@@ -44,6 +45,7 @@ def main():
     define_signals(window)
     widget.show()
     print('widget.baseSize():{} {}'.format(widget.height(), widget.width()))
+    # 窗口大小和icon设置
     extro_ui(widget)
     #window.widget_more.hide()
     ret = app.exec_()

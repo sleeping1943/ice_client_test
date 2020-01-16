@@ -1,7 +1,7 @@
 import re
 from invoke import *
 from PyQt5.QtGui import QIcon, QFont, QTextDocument, QTextCursor
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QLayout, QGridLayout, QVBoxLayout, QHBoxLayout
 import time
 
@@ -54,6 +54,15 @@ light_theme = {
 }
 
 cur_theme = light_theme
+
+
+# 处理窗口键盘事件
+def ui_key_release_event(self, key_event):
+    if key_event.key() == Qt.Key_F5:
+        ui_invoke_func(self.window)
+        print(key_event.key())
+
+
 
 def help_format(self, state):
     print('help_format:{}'.format(state))
